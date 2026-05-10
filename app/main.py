@@ -45,6 +45,7 @@
 
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from app.routes.uploaded_files import router as uploaded_files_router
@@ -57,6 +58,15 @@ app = FastAPI(
     title="LangChain KG-RAG Backend",
     description="LangChain based KG-RAG using Pinecone, Neo4j, Claude and FastAPI",
     version="1.0.0",
+)
+
+# CORS FIX
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # testing ke liye OK
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -80,7 +90,7 @@ def health_check():
 
 if __name__ == "__main__":
     uvicorn.run(
-        "main:app",   # replace main with your filename
+        "app.main:app",   # agar file app/main.py ke andar hai
         host="0.0.0.0",
         port=8000,
         reload=True
