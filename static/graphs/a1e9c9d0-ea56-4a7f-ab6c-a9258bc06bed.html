@@ -1,0 +1,492 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1200px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"font": {"color": "white"}, "group": "Product", "id": "Existing F1 Car Model", "label": "Existing F1 Car Model", "shape": "dot", "title": "Product"}, {"font": {"color": "white"}, "group": "Person", "id": "Dr. C. Prasad", "label": "Dr. C. Prasad", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Organization", "id": "Department Of Automobile Engineering", "label": "Department Of Automobile Engineering", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Software", "id": "Solidworks", "label": "Solidworks", "shape": "dot", "title": "Software"}, {"font": {"color": "white"}, "group": "Software", "id": "Creo", "label": "Creo", "shape": "dot", "title": "Software"}, {"font": {"color": "white"}, "group": "Person", "id": "D. Venkata Ramana Reddy", "label": "D. Venkata Ramana Reddy", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Component", "id": "Diffuser", "label": "Diffuser", "shape": "dot", "title": "Component"}, {"font": {"color": "white"}, "group": "Regulation", "id": "Fia Technical Regulations", "label": "Fia Technical Regulations", "shape": "dot", "title": "Regulation"}, {"font": {"color": "white"}, "group": "Person", "id": "Mr. Ashok Verghese", "label": "Mr. Ashok Verghese", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Person", "id": "Dr. S.N. Sridhara", "label": "Dr. S.N. Sridhara", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Publication", "id": "Akshay Khot Et Al. (2018)", "label": "Akshay Khot Et Al. (2018)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Publication", "id": "Singh Et Al. (2019)", "label": "Singh Et Al. (2019)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Publication", "id": "Piyush Chavda Et Al. (2020)", "label": "Piyush Chavda Et Al. (2020)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Publication", "id": "Darshan Ajuida Et Al. (2021)", "label": "Darshan Ajuida Et Al. (2021)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Component", "id": "Side Pods", "label": "Side Pods", "shape": "dot", "title": "Component"}, {"font": {"color": "white"}, "group": "Person", "id": "Dr. Mrs. Elizabeth Verghese", "label": "Dr. Mrs. Elizabeth Verghese", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Component", "id": "Front Wing", "label": "Front Wing", "shape": "dot", "title": "Component"}, {"font": {"color": "white"}, "group": "Publication", "id": "Zhaowen Deng Et Al. (2020)", "label": "Zhaowen Deng Et Al. (2020)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Person", "id": "Dr. M. Jaikumar", "label": "Dr. M. Jaikumar", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Publication", "id": "Killi Surya Sivaji Et Al. (2019)", "label": "Killi Surya Sivaji Et Al. (2019)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Publication", "id": "Janusz Piechna Et Al. (2019)", "label": "Janusz Piechna Et Al. (2019)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Publication", "id": "Xabier Castro Et Al. (2020)", "label": "Xabier Castro Et Al. (2020)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Equipment", "id": "Wind Tunnel", "label": "Wind Tunnel", "shape": "dot", "title": "Equipment"}, {"font": {"color": "white"}, "group": "Publication", "id": "Alex Guerrero Et Al. (2020)", "label": "Alex Guerrero Et Al. (2020)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Person", "id": "G. Anurag Parida", "label": "G. Anurag Parida", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Organization", "id": "Hindustan Institute Of Technology And Science", "label": "Hindustan Institute Of Technology And Science", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Organization", "id": "Sauber Petronas", "label": "Sauber Petronas", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Person", "id": "G. Monish Kumar", "label": "G. Monish Kumar", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Publication", "id": "Ahmed T. Raheem Et Al. (2019)", "label": "Ahmed T. Raheem Et Al. (2019)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Concept", "id": "Lift Force", "label": "Lift Force", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Publication", "id": "Ali Asgar S Et Al. (2014)", "label": "Ali Asgar S Et Al. (2014)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Product", "id": "Modified F1 Car Model", "label": "Modified F1 Car Model", "shape": "dot", "title": "Product"}, {"font": {"color": "white"}, "group": "Software", "id": "Ansys Fluent", "label": "Ansys Fluent", "shape": "dot", "title": "Software"}, {"font": {"color": "white"}, "group": "Concept", "id": "Aerodynamics", "label": "Aerodynamics", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Publication", "id": "Bienz Et Al. (2003)", "label": "Bienz Et Al. (2003)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Person", "id": "Js. Karthikeyan", "label": "Js. Karthikeyan", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Publication", "id": "Shobhit Senger Et Al. (2014)", "label": "Shobhit Senger Et Al. (2014)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Material", "id": "Pla (Polylactic Acid)", "label": "Pla (Polylactic Acid)", "shape": "dot", "title": "Material"}, {"font": {"color": "white"}, "group": "Publication", "id": "Mohammad Mohammadi Et Al. (2012)", "label": "Mohammad Mohammadi Et Al. (2012)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Concept", "id": "Drag Force", "label": "Drag Force", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Person", "id": "Dr. Anand Jacob Verghese", "label": "Dr. Anand Jacob Verghese", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Person", "id": "Dr. V. Ramanathan", "label": "Dr. V. Ramanathan", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Concept", "id": "Downforce", "label": "Downforce", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Project", "id": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "label": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "shape": "dot", "title": "Project"}, {"font": {"color": "white"}, "group": "Technology", "id": "3D Printing", "label": "3D Printing", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Publication", "id": "Mustafa Cakir (2012)", "label": "Mustafa Cakir (2012)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Publication", "id": "Pranav Salhan (2020)", "label": "Pranav Salhan (2020)", "shape": "dot", "title": "Publication"}, {"font": {"color": "white"}, "group": "Degree", "id": "Bachelor Of Technology In Automobile Engineering", "label": "Bachelor Of Technology In Automobile Engineering", "shape": "dot", "title": "Degree"}, {"font": {"color": "white"}, "group": "Organization", "id": "School Of Mechanical Sciences", "label": "School Of Mechanical Sciences", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Concept", "id": "Cfd (Computational Fluid Dynamics)", "label": "Cfd (Computational Fluid Dynamics)", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Component", "id": "Rear Wing", "label": "Rear Wing", "shape": "dot", "title": "Component"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "D. Venkata Ramana Reddy", "label": "author", "to": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency"}, {"arrows": "to", "from": "Js. Karthikeyan", "label": "author", "to": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency"}, {"arrows": "to", "from": "G. Monish Kumar", "label": "author", "to": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency"}, {"arrows": "to", "from": "G. Anurag Parida", "label": "author", "to": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency"}, {"arrows": "to", "from": "Dr. C. Prasad", "label": "supervisor", "to": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency"}, {"arrows": "to", "from": "Dr. V. Ramanathan", "label": "coordinator", "to": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency"}, {"arrows": "to", "from": "Dr. M. Jaikumar", "label": "head", "to": "Department Of Automobile Engineering"}, {"arrows": "to", "from": "Dr. C. Prasad", "label": "member", "to": "Department Of Automobile Engineering"}, {"arrows": "to", "from": "Dr. V. Ramanathan", "label": "member", "to": "Department Of Automobile Engineering"}, {"arrows": "to", "from": "Dr. Mrs. Elizabeth Verghese", "label": "chancellor", "to": "Hindustan Institute Of Technology And Science"}, {"arrows": "to", "from": "Dr. Anand Jacob Verghese", "label": "pro_chancellor", "to": "Hindustan Institute Of Technology And Science"}, {"arrows": "to", "from": "Mr. Ashok Verghese", "label": "director", "to": "Hindustan Institute Of Technology And Science"}, {"arrows": "to", "from": "Dr. S.N. Sridhara", "label": "vice_chancellor", "to": "Hindustan Institute Of Technology And Science"}, {"arrows": "to", "from": "Department Of Automobile Engineering", "label": "part_of", "to": "School Of Mechanical Sciences"}, {"arrows": "to", "from": "School Of Mechanical Sciences", "label": "part_of", "to": "Hindustan Institute Of Technology And Science"}, {"arrows": "to", "from": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "label": "submitted_for", "to": "Bachelor Of Technology In Automobile Engineering"}, {"arrows": "to", "from": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "label": "conducted_at", "to": "Hindustan Institute Of Technology And Science"}, {"arrows": "to", "from": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "label": "studies", "to": "Aerodynamics"}, {"arrows": "to", "from": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "label": "includes", "to": "Existing F1 Car Model"}, {"arrows": "to", "from": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "label": "includes", "to": "Modified F1 Car Model"}, {"arrows": "to", "from": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "label": "uses", "to": "Solidworks"}, {"arrows": "to", "from": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "label": "uses", "to": "Wind Tunnel"}, {"arrows": "to", "from": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "label": "uses", "to": "3D Printing"}, {"arrows": "to", "from": "Design, Analysis And Fabrication Of F1 Car For Improving Aerodynamic Efficiency", "label": "uses", "to": "Cfd (Computational Fluid Dynamics)"}, {"arrows": "to", "from": "3D Printing", "label": "uses", "to": "Pla (Polylactic Acid)"}, {"arrows": "to", "from": "Existing F1 Car Model", "label": "has_component", "to": "Front Wing"}, {"arrows": "to", "from": "Existing F1 Car Model", "label": "has_component", "to": "Rear Wing"}, {"arrows": "to", "from": "Modified F1 Car Model", "label": "has_component", "to": "Front Wing"}, {"arrows": "to", "from": "Modified F1 Car Model", "label": "has_component", "to": "Rear Wing"}, {"arrows": "to", "from": "Modified F1 Car Model", "label": "has_component", "to": "Diffuser"}, {"arrows": "to", "from": "Modified F1 Car Model", "label": "has_component", "to": "Side Pods"}, {"arrows": "to", "from": "Front Wing", "label": "generates", "to": "Downforce"}, {"arrows": "to", "from": "Rear Wing", "label": "generates", "to": "Downforce"}, {"arrows": "to", "from": "Aerodynamics", "label": "includes", "to": "Drag Force"}, {"arrows": "to", "from": "Aerodynamics", "label": "includes", "to": "Lift Force"}, {"arrows": "to", "from": "Aerodynamics", "label": "includes", "to": "Downforce"}, {"arrows": "to", "from": "Fia Technical Regulations", "label": "governs", "to": "Front Wing"}, {"arrows": "to", "from": "Fia Technical Regulations", "label": "governs", "to": "Rear Wing"}, {"arrows": "to", "from": "Sauber Petronas", "label": "uses", "to": "Cfd (Computational Fluid Dynamics)"}, {"arrows": "to", "from": "Sauber Petronas", "label": "uses", "to": "Wind Tunnel"}, {"arrows": "to", "from": "Bienz Et Al. (2003)", "label": "about", "to": "Sauber Petronas"}, {"arrows": "to", "from": "Bienz Et Al. (2003)", "label": "studies", "to": "Cfd (Computational Fluid Dynamics)"}, {"arrows": "to", "from": "Mustafa Cakir (2012)", "label": "studies", "to": "Rear Wing"}, {"arrows": "to", "from": "Mustafa Cakir (2012)", "label": "uses", "to": "Ansys Fluent"}, {"arrows": "to", "from": "Mohammad Mohammadi Et Al. (2012)", "label": "studies", "to": "Aerodynamics"}, {"arrows": "to", "from": "Ali Asgar S Et Al. (2014)", "label": "studies", "to": "Aerodynamics"}, {"arrows": "to", "from": "Shobhit Senger Et Al. (2014)", "label": "studies", "to": "Aerodynamics"}, {"arrows": "to", "from": "Akshay Khot Et Al. (2018)", "label": "studies", "to": "Front Wing"}, {"arrows": "to", "from": "Akshay Khot Et Al. (2018)", "label": "uses", "to": "Cfd (Computational Fluid Dynamics)"}, {"arrows": "to", "from": "Singh Et Al. (2019)", "label": "studies", "to": "Aerodynamics"}, {"arrows": "to", "from": "Killi Surya Sivaji Et Al. (2019)", "label": "studies", "to": "Drag Force"}, {"arrows": "to", "from": "Janusz Piechna Et Al. (2019)", "label": "studies", "to": "Aerodynamics"}, {"arrows": "to", "from": "Ahmed T. Raheem Et Al. (2019)", "label": "studies", "to": "Front Wing"}, {"arrows": "to", "from": "Ahmed T. Raheem Et Al. (2019)", "label": "uses", "to": "Cfd (Computational Fluid Dynamics)"}, {"arrows": "to", "from": "Piyush Chavda Et Al. (2020)", "label": "studies", "to": "Rear Wing"}, {"arrows": "to", "from": "Pranav Salhan (2020)", "label": "studies", "to": "Downforce"}, {"arrows": "to", "from": "Pranav Salhan (2020)", "label": "uses", "to": "Ansys Fluent"}, {"arrows": "to", "from": "Xabier Castro Et Al. (2020)", "label": "studies", "to": "Front Wing"}, {"arrows": "to", "from": "Xabier Castro Et Al. (2020)", "label": "references", "to": "Fia Technical Regulations"}, {"arrows": "to", "from": "Zhaowen Deng Et Al. (2020)", "label": "studies", "to": "Rear Wing"}, {"arrows": "to", "from": "Alex Guerrero Et Al. (2020)", "label": "studies", "to": "Aerodynamics"}, {"arrows": "to", "from": "Alex Guerrero Et Al. (2020)", "label": "uses", "to": "Cfd (Computational Fluid Dynamics)"}, {"arrows": "to", "from": "Darshan Ajuida Et Al. (2021)", "label": "studies", "to": "Rear Wing"}, {"arrows": "to", "from": "Darshan Ajuida Et Al. (2021)", "label": "uses", "to": "Creo"}, {"arrows": "to", "from": "D. Venkata Ramana Reddy", "label": "operates", "to": "Wind Tunnel"}, {"arrows": "to", "from": "Js. Karthikeyan", "label": "modelled", "to": "Existing F1 Car Model"}, {"arrows": "to", "from": "G. Anurag Parida", "label": "modelled", "to": "Modified F1 Car Model"}, {"arrows": "to", "from": "G. Monish Kumar", "label": "simulated", "to": "Modified F1 Car Model"}, {"arrows": "to", "from": "G. Anurag Parida", "label": "simulated", "to": "Existing F1 Car Model"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"forceAtlas2Based": {"gravitationalConstant": -100, "centralGravity": 0.01, "springLength": 200, "springConstant": 0.08}, "minVelocity": 0.75, "solver": "forceAtlas2Based"}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

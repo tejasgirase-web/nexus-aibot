@@ -14,8 +14,10 @@ langchain-experimental
 pinecone
 neo4j
 
+pyvis
 pypdf
 python-docx
+docx2txt
 
 langchain-anthropic
 langchain-huggingface
